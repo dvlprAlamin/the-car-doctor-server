@@ -12,6 +12,8 @@ app.use(cors());
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 client.connect(err => {
+
+    // service api
     const serviceCollection = client.db("theCarDoctor").collection("services");
     app.post('/addService', (req, res) => {
         serviceCollection.insertOne(req.body)
@@ -31,6 +33,12 @@ client.connect(err => {
                 res.send(response.ok > 0);
             })
     })
+    app.get('/service/:title', (req, res) => {
+        serviceCollection.find({ title: req.params.title })
+            .toArray((error, documents) => {
+                res.send(documents)
+            })
+    })
     // add admin api
     const adminCollection = client.db("theCarDoctor").collection("admin");
     app.post('/addAdmin', (req, res) => {
@@ -39,39 +47,64 @@ client.connect(err => {
                 res.send(result.insertedCount > 0)
             })
     })
-
-    //   app.get('/juices/:id', (req, res) => {
-    //     juiceCollection.find({ _id: ObjectId(req.params.id) })
-    //       .toArray((error, documents) => {
-    //         res.send(documents)
-    //       })
-    //   })
-
-    //   const orderCollection = client.db("juicerBoosters").collection("orders");
-    //   app.post('/order', (req, res) => {
-    //     console.log(req.body);
-    //     const orderData = req.body;
-    //     orderCollection.insertOne(orderData)
-    //       .then(result => {
-    //         res.send(result.insertedCount > 0);
-    //       })
-    //   })
-    //   app.get('/orders', (req, res) => {
-    //     orderCollection.find(req.query)
-    //       .toArray((err, documents) => {
-    //         res.send(documents)
-    //       })
-    //   })
-    //   const adminCollection = client.db("juicerBoosters").collection("admins");
-    //   app.post('/admin', (req, res) => {
-    //     // console.log(req.body.email);
-    //     const email = req.body.email
-    //     adminCollection.find({ email: email })
-    //       .toArray((err, data) => {
-    //         console.log(data);
-    //         res.send(data.length > 0)
-    //       })
-    //   })
+    // find admin or not
+    app.post('/admin', (req, res) => {
+        const email = req.body.email
+        adminCollection.find({ email: email })
+            .toArray((err, data) => {
+                res.send(data.length > 0)
+            })
+    })
+    // order api
+    const orderCollection = client.db("theCarDoctor").collection("orders");
+    // add new order
+    app.post('/addOrder', (req, res) => {
+        orderCollection.insertOne(req.body)
+            .then(result => {
+                res.send(result.insertedCount > 0)
+            })
+    })
+    // all orders
+    app.get('/allOrders', (req, res) => {
+        orderCollection.find({})
+            .toArray((error, documents) => {
+                res.send(documents)
+            })
+    })
+    // individual orders
+    app.post('/orders', (req, res) => {
+        const email = req.body.email
+        orderCollection.find({ email: email })
+            .toArray((error, documents) => {
+                res.send(documents)
+            })
+    })
+    //update order status 
+    app.patch('/update/:id', (req, res) => {
+        const toUpdate = req.body;
+        orderCollection.updateOne({ _id: ObjectId(req.params.id) },
+            { $set: toUpdate, $currentDate: { lastModified: true } })
+            .then(result => {
+                res.send(result.modifiedCount > 0)
+            })
+            .catch(err => {
+                console.log('Failed to update');
+            })
+    })
+    // review api
+    const reviewCollection = client.db("theCarDoctor").collection("reviews");
+    app.post('/addReview', (req, res) => {
+        reviewCollection.insertOne(req.body)
+            .then(result => {
+                res.send(result.insertedCount > 0)
+            })
+    })
+    app.get('/reviews', (req, res) => {
+        reviewCollection.find({})
+            .toArray((error, documents) => {
+                res.send(documents)
+            })
+    })
 });
 
 const port = 4000;
